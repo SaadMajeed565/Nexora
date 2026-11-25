@@ -36,7 +36,7 @@ module.exports = {
     const { data } = await sheets.spreadsheets.values.append({
       spreadsheetId: input.spreadsheetId,
       range: input.range,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: { values: [input.values] },
     });
     return { updatedRange: data.updates && data.updates.updatedRange };

@@ -5,6 +5,10 @@
 // reads process.env and never hardcodes a key.
 //
 // Expected credentials: { botToken } (a bot token from BotFather — free).
+//
+// Note: this uses polling (getUpdates). Do NOT set a webhook on this bot —
+// a webhook makes getUpdates fail with a 409 conflict. A webhook-based
+// Telegram receiver is a Phase 2 runtime consideration, not an LLM tool.
 const TelegramBot = require('node-telegram-bot-api');
 const { z } = require('zod');
 

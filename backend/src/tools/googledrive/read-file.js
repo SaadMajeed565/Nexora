@@ -24,6 +24,9 @@ function getAuth(credentials) {
 
 const GOOGLE_DOC_MIME = 'application/vnd.google-apps.document';
 
+// Cap on returned text so a huge file cannot flood the model context.
+const MAX_CONTENT_CHARS = 50000;
+
 module.exports = {
   toolkit: 'googledrive',
   name: 'Read file',
@@ -38,16 +41,21 @@ module.exports = {
       fileId: input.fileId,
       fields: 'id, name, mimeType',
     });
-    let content;
+    let data;
     if (meta.mimeType === GOOGLE_DOC_MIME) {
-      const { data } = await drive.files.export({
+      data = (await drive.files.export({
         fileId: input.fileId,
         mimeType: 'text/plain',
-      });
-      content = typeof data === 'string' ? data : String(data);
+      })).data;
     } else {
-      const { data } = await drive.files.get({ fileId: input.fileId, alt: 'media' });
-      content = typeof data === 'string' ? data : String(data);
+      data = (await drive.files.get({ fileId: input.fileId, alt: 'media' })).data;
+    }
+    if (Buffer.isBuffer(data) && data.includes(0)) {
+      throw new Error('googledrive: file is not readable as text (binary)');
+    }
+    const content = typeof data === 'string' ? data : String(data);
+    if (content.length > MAX_CONTENT_CHARS) {
+      return { id: meta.id, name: meta.name, mimeType: meta.mimeType, content: content.slice(0, MAX_CONTENT_CHARS), truncated: true };
     }
     return { id: meta.id, name: meta.name, mimeType: meta.mimeType, content };
   },

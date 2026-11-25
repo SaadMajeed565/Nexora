@@ -17,6 +17,9 @@ function getClient(credentials) {
   return new Octokit({ auth: token });
 }
 
+// Cap on returned text so a huge file cannot flood the model context.
+const MAX_CONTENT_CHARS = 50000;
+
 module.exports = {
   toolkit: 'github',
   name: 'Read file',
@@ -38,10 +41,18 @@ module.exports = {
     if (Array.isArray(data) || data.type !== 'file') {
       throw new Error('github: path is not a file');
     }
+    const buf = Buffer.from(data.content, 'base64');
+    if (buf.includes(0)) {
+      throw new Error('github: file is not readable as text (binary)');
+    }
+    const content = buf.toString('utf8');
+    if (content.length > MAX_CONTENT_CHARS) {
+      return { name: data.name, path: data.path, content: content.slice(0, MAX_CONTENT_CHARS), truncated: true };
+    }
     return {
       name: data.name,
       path: data.path,
-      content: Buffer.from(data.content, 'base64').toString('utf8'),
+      content,
     };
   },
 };

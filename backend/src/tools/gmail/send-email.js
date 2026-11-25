@@ -22,12 +22,36 @@ function getAuth(credentials) {
   return oauth2;
 }
 
-function toBase64Url(str) {
-  return Buffer.from(str, 'utf8')
+function toBase64Url(buf) {
+  return Buffer.from(buf)
     .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
+}
+
+// Header values come from an LLM, so they must never contain line breaks:
+// a CR/LF would let the model (or text it read) inject extra headers such as Bcc.
+function safeHeader(value, field) {
+  const v = String(value);
+  if (/[\r\n]/.test(v)) {
+    throw new Error(`gmail: ${field} must not contain line breaks`);
+  }
+  return v;
+}
+
+// RFC 2047 encoding so non-ASCII subjects (e.g. Urdu, accents) arrive intact.
+function encodeSubject(subject) {
+  return /^[\x20-\x7e]*$/.test(subject)
+    ? subject
+    : `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
+}
+
+// Base64 body, wrapped at 76 chars as MIME expects.
+function encodeBody(body) {
+  return Buffer.from(body, 'utf8')
+    .toString('base64')
+    .replace(/(.{76})/g, '$1\r\n');
 }
 
 module.exports = {
@@ -43,11 +67,21 @@ module.exports = {
   }),
   run: async (credentials, input) => {
     const gmail = google.gmail({ version: 'v1', auth: getAuth(credentials) });
-    const lines = [`To: ${input.to}`, `Subject: ${input.subject}`];
+    const lines = [
+      `To: ${safeHeader(input.to, 'to')}`,
+      `Subject: ${encodeSubject(safeHeader(input.subject, 'subject'))}`,
+      'MIME-Version: 1.0',
+    ];
     if (input.inReplyTo) {
-      lines.push(`In-Reply-To: ${input.inReplyTo}`, `References: ${input.inReplyTo}`);
+      const ref = safeHeader(input.inReplyTo, 'inReplyTo');
+      lines.push(`In-Reply-To: ${ref}`, `References: ${ref}`);
     }
-    lines.push('Content-Type: text/plain; charset=utf-8', '', input.body);
+    lines.push(
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: base64',
+      '',
+      encodeBody(input.body)
+    );
     const { data } = await gmail.users.messages.send({
       userId: 'me',
       requestBody: { raw: toBase64Url(lines.join('\r\n')), threadId: input.threadId },

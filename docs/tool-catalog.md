@@ -97,6 +97,55 @@ ONLY the tool files that agent actually uses into the generated project
 in that project's `package.json`, so the generated agent runs standalone in
 its own Docker container with no dependency on the Nexora backend.
 
+## Security fixes (2026-11-25)
+
+A security review of the catalog found and fixed these. All are covered by
+tests in `~/workspace/nexora-test/e2e-tools.js` (418/418 after the fixes).
+
+1. **Gmail header injection** (`gmail/send-email.js`): header values (`to`,
+   `subject`, `inReplyTo`) are interpolated into the raw MIME message. An LLM
+   that has just read a malicious email could put `\r\nBcc: attacker@...` in
+   a subject and silently copy every message out. Fixed: `safeHeader` rejects
+   any value containing CR/LF, subjects are RFC 2047 encoded so non-ASCII
+   (e.g. Urdu) arrives intact, and the body is base64 transfer-encoded.
+2. **Sheets formula injection** (`google-sheets/append-row.js`,
+   `update-row.js`): `valueInputOption` was `'USER_ENTERED'`, which makes
+   Sheets evaluate formulas — an injected `=IMPORTDATA(...)` could leak sheet
+   data. Both now use `'RAW'` (values are stored as plain text, never
+   evaluated as formulas).
+3. **Unbounded reads** (`googledrive/read-file.js`, `github/read-file.js`):
+   a large file went straight into the model context, and Drive ran
+   `String(data)` on binary files (garbage). Fixed: `MAX_CONTENT_CHARS =
+   50000` — longer content is truncated with `truncated: true`; binary
+   content (a Buffer containing a 0x00 byte) throws a clear "not readable as
+   text" error instead of returning garbage.
+4. **AI SDK bridge** (`backend/src/agent/toolAdapter.js`): bridges the catalog
+   to Vercel AI SDK tools. Derives safe tool ids (`gmail_send_email` — no
+   spaces, only lowercase letters/digits/underscore); caps results at 50,000
+   chars; returns errors as data (`{ error: ... }`) so the model can recover
+   instead of throwing; and a `confirm` hook gates write tools (send/create/
+   update/append) behind user approval. The catalog's display names are
+   unchanged — the adapter derives the safe ids.
+5. **getAuth drift test**: the `getAuth` block is duplicated in the 12 Google
+   tool files (deliberate, so files copy verbatim). A test in e2e-tools.js
+   extracts the block from every Google file, normalizes the toolkit prefix,
+   and asserts all 12 are identical, so the copies cannot drift apart.
+
+**Generated agents need Node >= 22.12.** `require('octokit')` works on
+Node >= 22.12 (verified on Node v24.22.1); older Node may fail because recent
+octokit releases are ESM-only. The generated agent's Dockerfile must use
+Node >= 22.12.
+
+**Telegram webhook caveat.** `telegram/read-messages.js` uses polling
+(`getUpdates`). Do NOT set a webhook on that bot — a webhook makes
+`getUpdates` fail with a 409 conflict. A webhook-based Telegram receiver is
+a Phase 2 runtime consideration, not an LLM tool.
+
+**Google OAuth verification note.** Gmail scopes are restricted/sensitive.
+Serving external customers may require Google's app verification and possibly
+a security assessment. Check Google's current requirements before promising
+Gmail to customers. (Product note, not a code issue.)
+
 ## Count
 
 8 toolkits, 21 tools — all in one batch, no "next batch".
