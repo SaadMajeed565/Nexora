@@ -31,7 +31,7 @@ const blueprintSchema = z.object({
 const SYSTEM_PROMPT = `You are Nexora's Blueprint Engine. Turn the user's plain-language description into a structured agent blueprint as JSON matching the provided schema.
 
 Rules:
-- tools: use real, well-known toolkits where they fit (gmail, slack, google-calendar, github, google-sheets, telegram, hubspot). Each tool has a name, the toolkit it comes from, and a one-line description of what it does in this agent.
+- tools: use real, well-known toolkits where they fit (gmail, slack, google-calendar, github, google-sheets, telegram, whatsapp). Each tool has a name, the toolkit it comes from, and a one-line description of what it does in this agent.
 - workflow: a connected chain of steps. The first step is a trigger. Each step's "next" is the id of the following step; the last step has no "next". Step types: trigger, tool, decision, response. A tool step names the tool it uses.
 - triggers: how the agent starts (for example "new email arrives", "user sends a message").
 - fallback: one sentence describing what the agent does when it cannot complete a task (ask the user, log the failure, retry once).

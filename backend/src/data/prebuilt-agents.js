@@ -28,7 +28,7 @@ module.exports = [
     category: 'sales',
     capabilities: ['Qualify leads', 'Send follow-up emails', 'Book demo calls'],
     tools: [
-      { name: 'Lead Capture', toolkit: 'hubspot', description: 'Reads new leads from the CRM.' },
+      { name: 'Lead Capture', toolkit: 'google-sheets', description: 'Reads new leads from the leads sheet.' },
       { name: 'Email Sender', toolkit: 'gmail', description: 'Sends follow-up emails to leads.' },
       { name: 'Calendar Booking', toolkit: 'google-calendar', description: 'Books a demo call on the calendar.' },
     ],

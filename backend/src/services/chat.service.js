@@ -5,8 +5,8 @@ const { createGoogleGenerativeAI } = require('@ai-sdk/google');
 // capabilities, tools, and fallback — in plain sentences. Tool descriptions
 // have trailing periods stripped so the sentence never ends with "..".
 // (Phase 1 has no live tool execution; the prompt describes the tools the
-// agent is designed to use. Live Composio tools arrive with Module 4/7-full
-// in Phase 2.)
+// agent is designed to use. Live tools from the self-hosted catalog
+// (backend/src/tools/) arrive with Module 4 in Phase 2.)
 function buildSystemPrompt(agent) {
   const lines = [`You are ${agent.name}, an AI agent.`, agent.description];
   if (agent.capabilities?.length) {
