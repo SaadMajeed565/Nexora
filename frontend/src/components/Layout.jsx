@@ -1,29 +1,47 @@
-import { Link, Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const NAV = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/studio', label: 'Studio' },
+  { to: '/blueprints', label: 'Blueprints' },
+  { to: '/library', label: 'Library' },
+];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Nexora</h1>
-            <p className="text-sm text-gray-500">Prompt-to-Agent Platform</p>
+    <div className="nx-grain relative min-h-screen">
+      <header className="relative z-20 border-b border-line/80 bg-surface-raised/70 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="animate-fade-in">
+              <p className="nx-brand leading-none">Nexora</p>
+              <p className="mt-1 text-sm text-ink-muted">Prompt-to-agent platform</p>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-semibold text-ink">{user?.name}</p>
+                <p className="text-xs text-ink-muted">{user?.email}</p>
+              </div>
+              <button type="button" onClick={logout} className="nx-btn-secondary !py-2 !text-xs uppercase tracking-[0.14em]">
+                Log out
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm">{user?.name}</span>
-            <button onClick={logout} className="rounded border px-3 py-1 text-sm">Log out</button>
-          </div>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 border-t border-line/70 pt-4">
+            {NAV.map((item) => (
+              <NavLink key={item.to} to={item.to} className="nx-nav-link">
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <nav className="mt-3 flex gap-4 text-sm">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/studio">Prompt Studio</Link>
-          <Link to="/blueprints">Blueprints</Link>
-          <Link to="/library">Library</Link>
-        </nav>
       </header>
-      <Outlet />
+      <main className="relative z-10">
+        <Outlet />
+      </main>
     </div>
   );
 }

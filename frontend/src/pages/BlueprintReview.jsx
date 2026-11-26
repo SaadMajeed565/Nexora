@@ -42,7 +42,7 @@ export default function BlueprintReview() {
     let parsed;
     try {
       parsed = JSON.parse(json);
-    } catch (e) {
+    } catch {
       setError('The JSON is not valid. Fix it and try again.');
       return;
     }
@@ -55,57 +55,103 @@ export default function BlueprintReview() {
     }
   }
 
-  if (!blueprint) return <div className="p-6">{error || 'Loading…'}</div>;
+  if (!blueprint) {
+    return (
+      <div className="nx-page">
+        <p className="text-sm text-ink-muted">{error || 'Loading blueprint…'}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="text-xl font-bold">{blueprint.name}</h1>
-      <p className="mt-1 text-sm text-gray-500">{blueprint.purpose}</p>
-      <p className="mt-1 text-xs text-gray-400">Status: {blueprint.status}</p>
-      {error && <p className="mt-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>}
-      {saved && <p className="mt-3 rounded bg-green-50 p-2 text-sm text-green-700">{saved}</p>}
+    <div className="nx-page space-y-10">
+      <header>
+        <p className="nx-eyebrow">Blueprint review</p>
+        <h1 className="nx-title mt-2">{blueprint.name}</h1>
+        <p className="nx-subtitle">{blueprint.purpose}</p>
+        <p className="mt-3"><span className="nx-chip">{blueprint.status}</span></p>
+        {error && <p className="nx-alert-error mt-4">{error}</p>}
+        {saved && <p className="nx-alert-ok mt-4">{saved}</p>}
+      </header>
 
-      <h2 className="mt-6 font-semibold">Workflow</h2>
-      <div className="mt-2 rounded border bg-white">
-        <ExecutionGraph workflow={blueprint.workflow} />
-      </div>
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Workflow</h2>
+        <div className="nx-panel mt-3 overflow-hidden">
+          <ExecutionGraph workflow={blueprint.workflow} />
+        </div>
+      </section>
 
-      <h2 className="mt-6 font-semibold">Tools</h2>
-      <ul className="mt-2 space-y-1">
-        {blueprint.tools.map((t) => (
-          <li key={t.name} className="text-sm">
-            <span className="font-medium">{t.name}</span> ({t.toolkit}) — {t.description}
-          </li>
-        ))}
-      </ul>
+      <section className="grid gap-8 md:grid-cols-2">
+        <div>
+          <h2 className="font-display text-xl font-bold tracking-tight">Tools</h2>
+          <ul className="mt-3 space-y-2">
+            {blueprint.tools.map((t) => (
+              <li key={t.name} className="border-b border-line/70 pb-2 text-sm last:border-0">
+                <span className="font-semibold text-ink">{t.name}</span>
+                <span className="text-ink-muted"> · {t.toolkit}</span>
+                <p className="mt-0.5 text-ink-muted">{t.description}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="space-y-6">
+          <div>
+            <h2 className="font-display text-xl font-bold tracking-tight">Triggers</h2>
+            <p className="mt-2 text-sm text-ink-muted">{blueprint.triggers.join(' · ')}</p>
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-bold tracking-tight">Fallback</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">{blueprint.fallback}</p>
+          </div>
+        </div>
+      </section>
 
-      <h2 className="mt-6 font-semibold">Triggers</h2>
-      <p className="mt-1 text-sm">{blueprint.triggers.join(', ')}</p>
-      <h2 className="mt-4 font-semibold">Fallback</h2>
-      <p className="mt-1 text-sm">{blueprint.fallback}</p>
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Matching library agents</h2>
+        {matchError && <p className="mt-2 text-sm text-danger">{matchError}</p>}
+        {matches.length === 0 && !matchError && (
+          <p className="mt-2 text-sm text-ink-muted">No matches yet.</p>
+        )}
+        <ul className="mt-4 space-y-2">
+          {matches.map((m) => (
+            <li key={m.agent._id} className="nx-row">
+              <div className="min-w-0">
+                <Link className="font-semibold text-ink hover:text-signal" to={`/library/${m.agent._id}`}>
+                  {m.agent.name}
+                </Link>
+                <p className="mt-1 text-xs text-ink-muted">
+                  tools {m.match.breakdown.tools} · keywords {m.match.breakdown.keywords} · triggers{' '}
+                  {m.match.breakdown.triggers} · category {m.match.breakdown.category}
+                </p>
+              </div>
+              <span className="font-display text-2xl font-bold text-signal">{m.match.score}%</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <h2 className="mt-6 font-semibold">Matching library agents</h2>
-      {matchError && <p className="mt-1 text-sm text-red-600">{matchError}</p>}
-      {matches.length === 0 && !matchError && <p className="mt-1 text-sm text-gray-500">No matches yet.</p>}
-      <ul className="mt-2 space-y-2">
-        {matches.map((m) => (
-          <li key={m.agent._id} className="flex items-center justify-between rounded border bg-white px-4 py-2">
-            <div>
-              <Link className="font-semibold text-blue-600" to={`/library/${m.agent._id}`}>{m.agent.name}</Link>
-              <p className="text-xs text-gray-400">
-                tools {m.match.breakdown.tools} · keywords {m.match.breakdown.keywords} · triggers {m.match.breakdown.triggers} · category {m.match.breakdown.category}
-              </p>
-            </div>
-            <span className="text-lg font-bold">{m.match.score}%</span>
-          </li>
-        ))}
-      </ul>
-
-      <h2 className="mt-6 font-semibold">Edit blueprint (JSON)</h2>
-      <div className="mt-2 overflow-hidden rounded border">
-        <Editor height="380px" defaultLanguage="json" value={json} onChange={(v) => setJson(v || '')} />
-      </div>
-      <button onClick={handleSave} className="mt-3 rounded bg-black px-4 py-2 text-white">Save changes</button>
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Edit blueprint</h2>
+        <p className="mt-1 text-sm text-ink-muted">Adjust the JSON, then save to mark it reviewed.</p>
+        <div className="nx-panel mt-3 overflow-hidden">
+          <Editor
+            height="380px"
+            defaultLanguage="json"
+            theme="vs-light"
+            value={json}
+            onChange={(v) => setJson(v || '')}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 13,
+              padding: { top: 16 },
+              scrollBeyondLastLine: false,
+            }}
+          />
+        </div>
+        <button type="button" onClick={handleSave} className="nx-btn-primary mt-4">
+          Save changes
+        </button>
+      </section>
     </div>
   );
 }

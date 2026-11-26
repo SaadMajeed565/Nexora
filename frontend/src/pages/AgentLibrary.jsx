@@ -20,39 +20,59 @@ export default function AgentLibrary() {
   }, [search, category]);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="text-xl font-bold">Agent Library</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Ready-made agents. Use one directly, customize it, or build your own from scratch.
-      </p>
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      <div className="mt-4 flex gap-2">
+    <div className="nx-page">
+      <header>
+        <p className="nx-eyebrow">Catalog</p>
+        <h1 className="nx-title mt-2">Agent Library</h1>
+        <p className="nx-subtitle">
+          Production-ready agents. Use one directly, customize it, or start from a blank blueprint.
+        </p>
+      </header>
+
+      {error && <p className="nx-alert-error mt-6">{error}</p>}
+
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <input
-          className="flex-1 rounded border px-3 py-2"
+          className="nx-input flex-1"
           placeholder="Search agents…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select className="rounded border px-3 py-2" value={category} onChange={(e) => setCategory(e.target.value)}>
+        <select className="nx-select sm:w-52" value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>{c === 'all' ? 'All categories' : c}</option>
           ))}
         </select>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {agents.map((a) => (
-          <Link key={a._id} to={`/library/${a._id}`} className="rounded border bg-white p-4 hover:border-black">
-            <h2 className="font-semibold">{a.name}</h2>
-            <p className="mt-1 text-sm text-gray-500">{a.description}</p>
-            <p className="mt-2 text-xs text-gray-400">
-              {a.category} · {a.capabilities.slice(0, 3).join(', ')}
+          <Link
+            key={a._id}
+            to={`/library/${a._id}`}
+            className="group border border-line bg-surface-raised/70 p-5 shadow-soft transition hover:border-ink/30 hover:bg-white"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="font-display text-xl font-bold tracking-tight text-ink group-hover:text-signal">
+                {a.name}
+              </h2>
+              <span className="nx-chip shrink-0">{a.category}</span>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">{a.description}</p>
+            <p className="mt-4 text-xs font-medium uppercase tracking-[0.12em] text-ink-muted/80">
+              {a.capabilities.slice(0, 3).join(' · ')}
             </p>
           </Link>
         ))}
-        {agents.length === 0 && <p className="text-sm text-gray-500">No agents match.</p>}
+        {agents.length === 0 && (
+          <p className="col-span-full border border-dashed border-line px-4 py-10 text-center text-sm text-ink-muted">
+            No agents match.
+          </p>
+        )}
       </div>
-      <p className="mt-6 text-sm text-gray-500">
-        Nothing fits? <Link className="text-blue-600" to="/studio">Build from scratch in Prompt Studio</Link>.
+
+      <p className="mt-10 text-sm text-ink-muted">
+        Nothing fits? <Link className="nx-link" to="/studio">Build from scratch in Prompt Studio</Link>.
       </p>
     </div>
   );

@@ -14,30 +14,45 @@ export default function Blueprints() {
     try {
       await deleteBlueprint(id);
       setBlueprints(blueprints.filter((b) => b._id !== id));
-    } catch (err) {
+    } catch {
       setError('Could not delete the blueprint.');
     }
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Your blueprints</h1>
-        <Link className="rounded bg-black px-4 py-2 text-sm text-white" to="/studio">New blueprint</Link>
-      </div>
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      <ul className="mt-4 space-y-2">
+    <div className="nx-page">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="nx-eyebrow">Designs</p>
+          <h1 className="nx-title mt-2">Blueprints</h1>
+          <p className="nx-subtitle">Review structured agent specs before they become runnable projects.</p>
+        </div>
+        <Link className="nx-btn-primary shrink-0" to="/studio">New blueprint</Link>
+      </header>
+
+      {error && <p className="nx-alert-error mt-6">{error}</p>}
+
+      <ul className="mt-8 space-y-2">
         {blueprints.map((b) => (
-          <li key={b._id} className="flex items-center justify-between rounded border bg-white px-4 py-3">
-            <div>
-              <Link className="font-semibold text-blue-600" to={`/blueprints/${b._id}`}>{b.name}</Link>
-              <p className="text-sm text-gray-500">{b.purpose}</p>
-              <p className="text-xs text-gray-400">Status: {b.status}</p>
+          <li key={b._id} className="nx-row items-start sm:items-center">
+            <div className="min-w-0 flex-1">
+              <Link className="font-display text-lg font-bold tracking-tight text-ink hover:text-signal" to={`/blueprints/${b._id}`}>
+                {b.name}
+              </Link>
+              <p className="mt-1 text-sm text-ink-muted">{b.purpose}</p>
+              <p className="mt-2"><span className="nx-chip">{b.status}</span></p>
             </div>
-            <button onClick={() => handleDelete(b._id)} className="rounded border px-3 py-1 text-sm text-red-600">Delete</button>
+            <button type="button" onClick={() => handleDelete(b._id)} className="nx-btn-danger !py-2 !text-xs uppercase tracking-[0.12em]">
+              Delete
+            </button>
           </li>
         ))}
-        {blueprints.length === 0 && <li className="text-sm text-gray-500">No blueprints yet — create one in Prompt Studio.</li>}
+        {blueprints.length === 0 && (
+          <li className="border border-dashed border-line px-4 py-10 text-center text-sm text-ink-muted">
+            No blueprints yet — create one in{' '}
+            <Link className="nx-link" to="/studio">Prompt Studio</Link>.
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -35,31 +35,48 @@ export default function PromptStudio() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-xl font-bold">Prompt Studio</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Describe the agent you want in plain words. Nexora turns it into a blueprint you can review.
-      </p>
-      {error && <p className="mt-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>}
-      <form onSubmit={handleGenerate} className="mt-4 space-y-3">
-        <label className="block text-sm font-medium">Workspace</label>
-        <select className="w-full rounded border px-3 py-2" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
-          {workspaces.map((w) => (
-            <option key={w._id} value={w._id}>{w.name}</option>
-          ))}
-        </select>
-        <label className="block text-sm font-medium">What should the agent do?</label>
-        <textarea
-          className="w-full rounded border px-3 py-2"
-          rows={6}
-          placeholder="Example: Answer customer emails, check the order in our sheet, and reply politely within one hour."
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          required
-        />
-        <button className="rounded bg-black px-4 py-2 text-white disabled:opacity-50" type="submit" disabled={generating}>
-          {generating ? 'Generating blueprint…' : 'Generate blueprint'}
-        </button>
+    <div className="nx-page max-w-3xl">
+      <header>
+        <p className="nx-eyebrow">Module 2</p>
+        <h1 className="nx-title mt-2">Prompt Studio</h1>
+        <p className="nx-subtitle">
+          Describe the agent in plain language. Nexora drafts a structured blueprint you can review and refine.
+        </p>
+      </header>
+
+      {error && <p className="nx-alert-error mt-6">{error}</p>}
+
+      <form onSubmit={handleGenerate} className="nx-panel mt-8 space-y-5 p-6 sm:p-8">
+        <div>
+          <label className="nx-label" htmlFor="workspace">Workspace</label>
+          <select
+            id="workspace"
+            className="nx-select"
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
+          >
+            {workspaces.map((w) => (
+              <option key={w._id} value={w._id}>{w.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="nx-label" htmlFor="prompt">What should the agent do?</label>
+          <textarea
+            id="prompt"
+            className="nx-textarea min-h-[180px]"
+            placeholder="Example: Answer customer emails, check the order in our sheet, and reply politely within one hour."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            required
+          />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+          <p className="text-xs text-ink-muted">Gemini drafts tools, workflow, triggers, and fallback.</p>
+          <button className="nx-btn-primary" type="submit" disabled={generating || !workspaceId}>
+            {generating ? 'Generating blueprint…' : 'Generate blueprint'}
+          </button>
+        </div>
       </form>
     </div>
   );

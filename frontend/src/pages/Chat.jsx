@@ -53,7 +53,7 @@ export default function Chat() {
       await deleteConversation(id);
       setConversations(conversations.filter((c) => c._id !== id));
       if (id === conversationId) newChat();
-    } catch (err) {
+    } catch {
       setError('Could not delete the conversation.');
     }
   }
@@ -94,49 +94,102 @@ export default function Chat() {
     }
   }
 
-  if (!agent) return <div className="p-6">{error || 'Loading…'}</div>;
+  if (!agent) {
+    return (
+      <div className="nx-page">
+        <p className="text-sm text-ink-muted">{error || 'Loading chat…'}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto flex max-w-5xl gap-4 p-6">
-      <aside className="w-56 shrink-0">
-        <button onClick={newChat} className="w-full rounded bg-black px-3 py-2 text-sm text-white">+ New chat</button>
-        <ul className="mt-3 space-y-1">
-          {conversations.map((c) => (
-            <li key={c._id} className="flex items-center justify-between rounded border bg-white px-2 py-1 text-sm">
-              <button onClick={() => openConversation(c._id)} className="flex-1 truncate text-left">{c.title}</button>
-              <button onClick={() => handleDelete(c._id)} className="ml-2 text-red-600">×</button>
-            </li>
-          ))}
-        </ul>
-        <Link className="mt-4 block text-sm text-blue-600" to="/library">← Back to Library</Link>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h1 className="text-xl font-bold">Chat with {agent.name}</h1>
-        <p className="text-sm text-gray-500">{agent.description}</p>
-        {error && <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>}
-        <div className="mt-4 flex-1 space-y-3 overflow-y-auto rounded border bg-white p-4" style={{ minHeight: 320 }}>
-          {messages.length === 0 && <p className="text-sm text-gray-500">Say hello — the agent answers in character.</p>}
-          {messages.map((m, i) => (
-            <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-              <span className={`inline-block max-w-[80%] rounded px-3 py-2 text-sm ${m.role === 'user' ? 'bg-black text-white' : 'bg-gray-100'}`}>
-                {m.content}
-              </span>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-        <form onSubmit={handleSend} className="mt-3 flex gap-2">
-          <input
-            className="flex-1 rounded border px-3 py-2"
-            placeholder="Type a message…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={sending}
-          />
-          <button className="rounded bg-black px-4 py-2 text-white disabled:opacity-50" type="submit" disabled={sending}>
-            {sending ? '…' : 'Send'}
+    <div className="nx-page !max-w-6xl">
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+        <aside className="w-full shrink-0 lg:w-56">
+          <button type="button" onClick={newChat} className="nx-btn-primary w-full">
+            New chat
           </button>
-        </form>
+          <ul className="mt-4 space-y-1">
+            {conversations.map((c) => (
+              <li
+                key={c._id}
+                className={`flex items-center gap-2 border px-2.5 py-2 text-sm transition ${
+                  c._id === conversationId
+                    ? 'border-signal/40 bg-signal-mist/50'
+                    : 'border-transparent hover:border-line hover:bg-surface-raised'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => openConversation(c._id)}
+                  className="min-w-0 flex-1 truncate text-left font-medium text-ink"
+                >
+                  {c.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(c._id)}
+                  className="text-ink-muted transition hover:text-danger"
+                  aria-label="Delete conversation"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Link className="nx-link mt-6 inline-block text-sm" to="/library">
+            ← Library
+          </Link>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header>
+            <p className="nx-eyebrow">Live session</p>
+            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">{agent.name}</h1>
+            <p className="mt-1 text-sm text-ink-muted">{agent.description}</p>
+          </header>
+
+          {error && <p className="nx-alert-error mt-4">{error}</p>}
+
+          <div className="nx-panel mt-5 flex min-h-[360px] flex-1 flex-col overflow-hidden">
+            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+              {messages.length === 0 && (
+                <p className="py-12 text-center text-sm text-ink-muted">
+                  Start the conversation — the agent replies in character.
+                </p>
+              )}
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                >
+                  <div
+                    className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed ${
+                      m.role === 'user'
+                        ? 'bg-ink text-surface-raised'
+                        : 'border border-line bg-surface-sunken/40 text-ink'
+                    }`}
+                  >
+                    {m.content || (sending && i === messages.length - 1 ? '…' : '')}
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+            <form onSubmit={handleSend} className="flex gap-2 border-t border-line p-3">
+              <input
+                className="nx-input flex-1 !border-0 !bg-transparent !ring-0 focus:!ring-0"
+                placeholder="Type a message…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={sending}
+              />
+              <button className="nx-btn-primary shrink-0" type="submit" disabled={sending}>
+                {sending ? '…' : 'Send'}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -52,67 +52,110 @@ export default function AgentDetail() {
     }
   }
 
-  if (!agent) return <div className="p-6">{error || 'Loading…'}</div>;
+  if (!agent) {
+    return (
+      <div className="nx-page">
+        <p className="text-sm text-ink-muted">{error || 'Loading agent…'}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="text-xl font-bold">{agent.name}</h1>
-      <p className="mt-1 text-sm text-gray-500">{agent.description}</p>
-      <p className="mt-1 text-xs text-gray-400">Category: {agent.category}</p>
-      <Link className="mt-3 inline-block rounded bg-black px-4 py-2 text-sm text-white" to={`/chat/${agent._id}`}>Chat with this agent</Link>
-      {error && <p className="mt-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>}
-
-      <h2 className="mt-6 font-semibold">What it can do</h2>
-      <ul className="mt-2 list-disc pl-5 text-sm">
-        {agent.capabilities.map((c) => (
-          <li key={c}>{c}</li>
-        ))}
-      </ul>
-
-      <h2 className="mt-6 font-semibold">Tools</h2>
-      <ul className="mt-2 space-y-1">
-        {agent.tools.map((t) => (
-          <li key={t.name} className="text-sm">
-            <span className="font-medium">{t.name}</span> ({t.toolkit}) — {t.description}
-          </li>
-        ))}
-      </ul>
-
-      <h2 className="mt-6 font-semibold">Workflow</h2>
-      <div className="mt-2 rounded border bg-white">
-        <ExecutionGraph workflow={agent.workflow} />
-      </div>
-
-      <h2 className="mt-6 font-semibold">Adopt this agent</h2>
-      <form onSubmit={handleAdopt} className="mt-2 space-y-3 rounded border bg-white p-4">
-        <label className="block text-sm font-medium">Workspace</label>
-        <select className="w-full rounded border px-3 py-2" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
-          {workspaces.map((w) => (
-            <option key={w._id} value={w._id}>{w.name}</option>
-          ))}
-        </select>
-        <div className="flex gap-4 text-sm">
-          <label>
-            <input type="radio" checked={mode === 'use'} onChange={() => setMode('use')} /> Use directly
-          </label>
-          <label>
-            <input type="radio" checked={mode === 'customize'} onChange={() => setMode('customize')} /> Customize it
-          </label>
+    <div className="nx-page space-y-10">
+      <header>
+        <p className="nx-eyebrow">{agent.category}</p>
+        <h1 className="nx-title mt-2">{agent.name}</h1>
+        <p className="nx-subtitle">{agent.description}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link className="nx-btn-primary" to={`/chat/${agent._id}`}>Chat with agent</Link>
+          <Link className="nx-btn-secondary" to="/library">Back to library</Link>
         </div>
-        {mode === 'customize' && (
-          <>
-            <input className="w-full rounded border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
-            <textarea className="w-full rounded border px-3 py-2" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-            <textarea className="w-full rounded border px-3 py-2" rows={2} value={fallback} onChange={(e) => setFallback(e.target.value)} placeholder="Fallback behaviour" />
-          </>
-        )}
-        <button className="rounded bg-black px-4 py-2 text-white disabled:opacity-50" type="submit" disabled={adopting}>
-          {adopting ? 'Adopting…' : mode === 'use' ? 'Adopt agent' : 'Adopt customized agent'}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-gray-500">
-        Or <Link className="text-blue-600" to="/studio">build one from scratch</Link>.
-      </p>
+        {error && <p className="nx-alert-error mt-4">{error}</p>}
+      </header>
+
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Capabilities</h2>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {agent.capabilities.map((c) => (
+            <li key={c} className="border-l-2 border-signal pl-3 text-sm text-ink-muted">
+              {c}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Tools</h2>
+        <ul className="mt-3 space-y-2">
+          {agent.tools.map((t) => (
+            <li key={t.name} className="border-b border-line/70 pb-2 text-sm last:border-0">
+              <span className="font-semibold text-ink">{t.name}</span>
+              <span className="text-ink-muted"> · {t.toolkit}</span>
+              <p className="mt-0.5 text-ink-muted">{t.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Workflow</h2>
+        <div className="nx-panel mt-3 overflow-hidden">
+          <ExecutionGraph workflow={agent.workflow} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Adopt this agent</h2>
+        <p className="mt-1 text-sm text-ink-muted">Attach it to a workspace as-is, or customize before adopting.</p>
+        <form onSubmit={handleAdopt} className="nx-panel mt-4 space-y-4 p-6">
+          <div>
+            <label className="nx-label" htmlFor="workspace">Workspace</label>
+            <select
+              id="workspace"
+              className="nx-select"
+              value={workspaceId}
+              onChange={(e) => setWorkspaceId(e.target.value)}
+            >
+              {workspaces.map((w) => (
+                <option key={w._id} value={w._id}>{w.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <label className="flex cursor-pointer items-center gap-2 font-medium">
+              <input
+                type="radio"
+                className="accent-[var(--signal)]"
+                checked={mode === 'use'}
+                onChange={() => setMode('use')}
+              />
+              Use directly
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 font-medium">
+              <input
+                type="radio"
+                className="accent-[var(--signal)]"
+                checked={mode === 'customize'}
+                onChange={() => setMode('customize')}
+              />
+              Customize
+            </label>
+          </div>
+          {mode === 'customize' && (
+            <div className="space-y-3 border-t border-line pt-4">
+              <input className="nx-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
+              <textarea className="nx-textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+              <textarea className="nx-textarea" rows={2} value={fallback} onChange={(e) => setFallback(e.target.value)} placeholder="Fallback behaviour" />
+            </div>
+          )}
+          <button className="nx-btn-primary" type="submit" disabled={adopting || !workspaceId}>
+            {adopting ? 'Adopting…' : mode === 'use' ? 'Adopt agent' : 'Adopt customized agent'}
+          </button>
+        </form>
+        <p className="mt-4 text-sm text-ink-muted">
+          Or <Link className="nx-link" to="/studio">build one from scratch</Link>.
+        </p>
+      </section>
     </div>
   );
 }
