@@ -31,3 +31,8 @@ export async function getUserAgent(id) {
   const { data } = await api.get(`/agents/${id}`);
   return data.agent;
 }
+
+export async function createAgentFromBlueprint(blueprintId) {
+  const { data } = await api.post(`/agents/from-blueprint/${blueprintId}`);
+  return data.agent;
+}

@@ -23,9 +23,39 @@ export default function ExecutionGraph({ workflow }) {
   }));
 
   const edges = [];
+  const exists = (id) => id && workflow.some((s) => s.id === id);
   workflow.forEach((step, i) => {
+    if (step.branches?.length) {
+      // Decision step: one labelled edge per branch case, plus the else
+      // edge — this is what makes the fork (and the rejoin) visible.
+      step.branches.forEach((branch, j) => {
+        if (exists(branch.goto)) {
+          edges.push({
+            id: `${step.id}-branch${j}->${branch.goto}`,
+            source: step.id,
+            target: branch.goto,
+            label: branch.when,
+            animated: true,
+            style: { stroke: '#0f6b52', strokeWidth: 1.5 },
+            labelStyle: { fontSize: 10, fontWeight: 600, fill: '#0f6b52' },
+          });
+        }
+      });
+      if (exists(step.else)) {
+        edges.push({
+          id: `${step.id}-else->${step.else}`,
+          source: step.id,
+          target: step.else,
+          label: 'else',
+          animated: true,
+          style: { stroke: '#b45309', strokeWidth: 1.5, strokeDasharray: '5 4' },
+          labelStyle: { fontSize: 10, fontWeight: 600, fill: '#b45309' },
+        });
+      }
+      return;
+    }
     const target = step.next || workflow[i + 1]?.id;
-    if (target && workflow.some((s) => s.id === target)) {
+    if (exists(target)) {
       edges.push({
         id: `${step.id}->${target}`,
         source: step.id,

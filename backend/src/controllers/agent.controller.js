@@ -1,4 +1,6 @@
 const Agent = require('../models/Agent');
+const Blueprint = require('../models/Blueprint');
+const Workspace = require('../models/Workspace');
 
 // The user's own adopted agents (shown on the Dashboard).
 async function listUserAgents(req, res, next) {
@@ -26,4 +28,42 @@ async function getUserAgent(req, res, next) {
   }
 }
 
-module.exports = { listUserAgents, getUserAgent };
+// Create a live agent from one of the user's OWN blueprints — the
+// build-from-scratch path, so a blueprint never forces adoption of a
+// library agent. The agent copies the blueprint's name, purpose (as its
+// description), tools, workflow and fallback, and chats in Phase 1 like
+// an adopted agent (the build pipeline is Module 4, Phase 2).
+async function createAgentFromBlueprint(req, res, next) {
+  try {
+    const blueprint = await Blueprint.findById(req.params.blueprintId);
+    if (!blueprint) return res.status(404).json({ error: 'Blueprint not found' });
+    const isOwner = blueprint.owner.toString() === req.user._id.toString();
+    if (!isOwner) {
+      const workspace = await Workspace.findById(blueprint.workspace);
+      const isMember =
+        workspace && workspace.members.some((m) => m.user.toString() === req.user._id.toString());
+      if (!isMember) return res.status(403).json({ error: 'Not your blueprint' });
+    }
+    const agent = await Agent.create({
+      name: blueprint.name,
+      description: blueprint.purpose,
+      category: 'custom',
+      capabilities: [],
+      tools: blueprint.tools,
+      workflow: blueprint.workflow,
+      triggers: blueprint.triggers,
+      fallback: blueprint.fallback,
+      useCases: [],
+      isPrebuilt: false,
+      owner: req.user._id,
+      workspace: blueprint.workspace,
+      sourceBlueprint: blueprint._id,
+      status: 'active',
+    });
+    res.status(201).json({ agent });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listUserAgents, getUserAgent, createAgentFromBlueprint };

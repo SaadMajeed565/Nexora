@@ -39,8 +39,12 @@ const adoptSchema = z.object({
 });
 
 const sendMessageSchema = z.object({
-  conversationId: z.string().optional(),
-  workspaceId: z.string().optional(),
+  // nullish, not just optional: the Chat page holds conversationId in
+  // React state as null and sends it explicitly for a new conversation.
+  // z.string().optional() rejects an explicit null ("Expected string,
+  // received null"), which hard-failed every new chat from the real UI.
+  conversationId: z.string().nullish(),
+  workspaceId: z.string().nullish(),
   message: z.string().min(1, 'Message is required').max(2000),
 });
 

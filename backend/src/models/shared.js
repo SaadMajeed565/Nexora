@@ -10,6 +10,16 @@ const toolSubSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// One branch out of a decision step: when the condition holds, go to
+// the step whose id is `goto`.
+const branchSubSchema = new mongoose.Schema(
+  {
+    when: { type: String, required: true },
+    goto: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const stepSubSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
@@ -18,6 +28,10 @@ const stepSubSchema = new mongoose.Schema(
     tool: { type: String },
     config: { type: mongoose.Schema.Types.Mixed },
     next: { type: String },
+    // Decision steps route with branches + else INSTEAD of next:
+    // branches cover the named cases (if / case), else is the default.
+    branches: [branchSubSchema],
+    else: { type: String },
   },
   { _id: false }
 );

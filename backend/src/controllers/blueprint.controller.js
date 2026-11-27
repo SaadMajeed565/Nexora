@@ -1,6 +1,6 @@
 const Blueprint = require('../models/Blueprint');
 const Workspace = require('../models/Workspace');
-const { blueprintSchema, generateBlueprint } = require('../services/blueprint.service');
+const { blueprintSchema, generateBlueprint, validateWorkflowRefs } = require('../services/blueprint.service');
 const { getMemberWorkspace } = require('../utils/workspace');
 
 // UC-04: generate a blueprint from a plain-language prompt (FR-2.2).
@@ -10,6 +10,12 @@ async function createBlueprint(req, res, next) {
     const { workspace, error } = await getMemberWorkspace(workspaceId, req.user._id);
     if (error) return res.status(error.status).json({ error: error.message });
     const generated = await generateBlueprint(prompt);
+    const refError = validateWorkflowRefs(generated.workflow);
+    if (refError) {
+      const err = new Error(refError);
+      err.status = 400;
+      throw err;
+    }
     const blueprint = await Blueprint.create({
       ...generated,
       prompt,
@@ -63,6 +69,10 @@ async function updateBlueprint(req, res, next) {
     const parsed = blueprintSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues[0].message });
+    }
+    const refError = validateWorkflowRefs(parsed.data.workflow);
+    if (refError) {
+      return res.status(400).json({ error: refError });
     }
     const blueprint = await Blueprint.findById(req.params.id);
     if (!blueprint) return res.status(404).json({ error: 'Blueprint not found' });

@@ -5,6 +5,7 @@ const ctrl = require('../controllers/agent.controller');
 const router = express.Router();
 
 router.use(auth);
+router.post('/from-blueprint/:blueprintId', ctrl.createAgentFromBlueprint);
 router.get('/', ctrl.listUserAgents);
 router.get('/:id', ctrl.getUserAgent);
 

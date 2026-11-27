@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { getBlueprint, updateBlueprint } from '../services/blueprint.service';
-import { matchAgents } from '../services/library.service';
+import { matchAgents, createAgentFromBlueprint } from '../services/library.service';
 import ExecutionGraph from '../components/ExecutionGraph';
 
 const EDITABLE = ['name', 'purpose', 'tools', 'workflow', 'triggers', 'fallback'];
@@ -23,6 +23,9 @@ export default function BlueprintReview() {
   const [saved, setSaved] = useState('');
   const [matches, setMatches] = useState([]);
   const [matchError, setMatchError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createdAgent, setCreatedAgent] = useState(null);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     getBlueprint(id)
@@ -35,6 +38,19 @@ export default function BlueprintReview() {
       .then(setMatches)
       .catch(() => setMatchError('Could not load matches.'));
   }, [id]);
+
+  async function handleCreateAgent() {
+    setCreating(true);
+    setCreateError('');
+    try {
+      const agent = await createAgentFromBlueprint(id);
+      setCreatedAgent(agent);
+    } catch (err) {
+      setCreateError(err.response?.data?.error || 'Could not create the agent.');
+    } finally {
+      setCreating(false);
+    }
+  }
 
   async function handleSave() {
     setError('');
@@ -73,6 +89,26 @@ export default function BlueprintReview() {
         {error && <p className="nx-alert-error mt-4">{error}</p>}
         {saved && <p className="nx-alert-ok mt-4">{saved}</p>}
       </header>
+
+      <section>
+        <h2 className="font-display text-xl font-bold tracking-tight">Your agent from this blueprint</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Skip the library — turn this blueprint into your own live agent, with its tools and workflow.
+        </p>
+        {createError && <p className="nx-alert-error mt-4">{createError}</p>}
+        {createdAgent ? (
+          <p className="nx-alert-ok mt-4">
+            Agent created: <strong>{createdAgent.name}</strong>.{' '}
+            <Link className="nx-link font-semibold" to={`/chat/${createdAgent._id}`}>
+              Open its chat →
+            </Link>
+          </p>
+        ) : (
+          <button type="button" onClick={handleCreateAgent} disabled={creating} className="nx-btn-primary mt-4">
+            {creating ? 'Creating…' : 'Create agent from this blueprint'}
+          </button>
+        )}
+      </section>
 
       <section>
         <h2 className="font-display text-xl font-bold tracking-tight">Workflow</h2>
