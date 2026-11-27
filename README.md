@@ -12,7 +12,7 @@ runnable Node.js project, runs it in a Docker container, and offers a chat UI.
 - Frontend: React 18 + Vite + Tailwind CSS 3
 - Backend: Node.js 22 + Express 5 + Mongoose (MongoDB Atlas)
 - AI: Vercel AI SDK (`ai` + `@ai-sdk/google`) + Zod — Gemini is the model
-- Tools: self-hosted catalog in `backend/src/tools/` — 8 toolkits, 21 tools, each using its service's official library (googleapis, @slack/web-api, octokit, node-telegram-bot-api, WhatsApp Cloud API via fetch). No third-party tool platform; everything runs on our own server.
+- Tools: self-hosted catalog in `backend/src/tools/` — 35 toolkits, 88 tools, each using its service's official library (googleapis, @slack/web-api, octokit, node-telegram-bot-api, mongodb/mysql2/pg drivers, openai, @anthropic-ai/sdk, @google/generative-ai, stripe, nodemailer, imapflow, cron-parser) or the service's REST API via fetch (WhatsApp, Discord, Microsoft Graph, Notion, Airtable, HubSpot, Salesforce, Pipedrive, Trello, Jira, Shopify, WooCommerce, Hugging Face, Ollama). No third-party tool platform; everything runs on our own server.
 - Runtime: Dockerode + BullMQ/Redis — one container per agent, own port, 512 MB limit
 - Auth: JWT + bcryptjs — Secrets: AES-256 (Node `crypto`), env vars only
 - Live updates: SSE (built in) — no Socket.IO
@@ -49,7 +49,7 @@ nexora/
 │       │   ├── rag.service.js         # chunking, embeddings, Atlas Vector Search
 │       │   ├── secrets.service.js     # AES-256 encrypt/decrypt
 │       │   └── version.service.js     # versions + rollback
-│       ├── tools/              # self-hosted tool catalog (8 toolkits, 21 tools)
+│       ├── tools/              # self-hosted tool catalog (35 toolkits, 88 tools)
 │       │                       # each file is copyable into a generated agent
 │       ├── jobs/              # BullMQ queues + build worker
 │       ├── templates/

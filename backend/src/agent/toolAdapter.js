@@ -3,7 +3,7 @@
 const { tools } = require('../tools');
 
 const MAX_RESULT_CHARS = 50000;
-const WRITE_PATTERN = /(send|create|update|append)/;
+const WRITE_PATTERN = /(send|create|update|append|insert|delete)/;
 
 function slug(s) {
   return String(s)
@@ -44,13 +44,19 @@ async function buildAiSdkTools({ credentialsByToolkit, allow, confirm }) {
     if (!credentials) continue; // user hasn't connected this toolkit
 
     const isWrite = WRITE_PATTERN.test(slug(t.name));
+    // http_make_request is a write only when it changes something: any
+    // method other than GET. Decided per call, from the actual input.
+    // (webhook's "Send webhook" is already a write via WRITE_PATTERN.)
+    const writeForInput = (inp) =>
+      isWrite ||
+      (id === 'http_make_request' && String((inp && inp.method) || 'GET').toUpperCase() !== 'GET');
 
     out[id] = tool({
       description: t.description,
       inputSchema: t.input, // AI SDK 5+ uses inputSchema (older versions: parameters)
       execute: async (input) => {
         try {
-          if (isWrite && confirm) {
+          if (writeForInput(input) && confirm) {
             const ok = await confirm(id, input);
             if (!ok) return { error: 'Action was not approved by the user.' };
           }
