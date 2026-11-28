@@ -7,8 +7,23 @@
 // platform whose credentials are not configured is simply not offered,
 // and platforms that need no credentials (schedule, http, webhook)
 // always run.
-const { tools: catalog } = require('../tools');
-const { buildAiSdkTools, toolId } = require('./toolAdapter');
+//
+// The catalog is loaded defensively: it eagerly requires all 88 tool
+// files, so one missing optional package (e.g. nodemailer not yet
+// installed) must never take the whole server down — chat simply runs
+// talk-only and the log says why, until `npm install` fixes it.
+let catalog = [];
+let buildAiSdkTools = null;
+let toolId = null;
+try {
+  ({ tools: catalog } = require('../tools'));
+  ({ buildAiSdkTools, toolId } = require('./toolAdapter'));
+} catch (err) {
+  console.error(
+    'Tool catalog unavailable, chat tools disabled (run npm install in backend):',
+    err.message
+  );
+}
 
 const NO_CREDENTIAL_TOOLKITS = ['schedule', 'http', 'webhook'];
 const GOOGLE_TOOLKITS = [
@@ -74,6 +89,7 @@ function getAgentToolkits(agent) {
 // the agent has no runnable platform, and chat then runs talk-only,
 // exactly as it did before live tools existed.
 async function buildChatTools(agent) {
+  if (!buildAiSdkTools) return {};
   const toolkits = getAgentToolkits(agent);
   if (!toolkits.length) return {};
   const all = configuredCredentials();
@@ -89,7 +105,7 @@ async function buildChatTools(agent) {
 // Display info for a tool id (gmail_search_emails -> Gmail's "Search
 // emails"), used for the tool events streamed to the chat UI.
 const toolDisplay = new Map(
-  catalog.map((t) => [toolId(t), { name: t.name, toolkit: t.toolkit }])
+  toolId ? catalog.map((t) => [toolId(t), { name: t.name, toolkit: t.toolkit }]) : []
 );
 function describeTool(id) {
   return toolDisplay.get(id) || { name: id, toolkit: '' };
