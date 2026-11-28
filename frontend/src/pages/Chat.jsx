@@ -151,7 +151,7 @@ export default function Chat() {
 
           {error && <p className="nx-alert-error mt-4">{error}</p>}
 
-          <div className="nx-panel mt-5 flex h-[calc(100dvh-330px)] min-h-[360px] flex-col overflow-hidden">
+          <div className="nx-panel mt-5 flex h-[calc(100dvh-250px)] min-h-[360px] flex-col overflow-hidden">
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {messages.length === 0 && (
                 <p className="py-12 text-center text-sm text-ink-muted">
