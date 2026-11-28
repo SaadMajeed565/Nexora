@@ -76,6 +76,19 @@ export default function Chat() {
             next[next.length - 1] = { role: 'assistant', content: next[next.length - 1].content + chunk };
             return next;
           });
+        },
+        (toolEvent) => {
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = { ...next[next.length - 1] };
+            const tools = [...(last.tools || [])];
+            const idx = tools.findIndex((t) => t.id === toolEvent.id);
+            if (idx >= 0) tools[idx] = toolEvent;
+            else tools.push(toolEvent);
+            last.tools = tools;
+            next[next.length - 1] = last;
+            return next;
+          });
         }
       );
       setConversationId(result.conversationId);
@@ -170,6 +183,19 @@ export default function Chat() {
                         : 'border border-line bg-surface-sunken/40 text-ink'
                     }`}
                   >
+                    {m.tools?.length > 0 && (
+                      <div className="mb-1.5 space-y-0.5 border-b border-line/60 pb-1.5 text-xs text-ink-muted">
+                        {m.tools.map((t, ti) => (
+                          <p key={ti}>
+                            {t.status === 'running'
+                              ? `Using ${t.toolkit} — ${t.name}…`
+                              : t.status === 'failed'
+                                ? `${t.toolkit} — ${t.name} failed`
+                                : `Used ${t.toolkit} — ${t.name}`}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     {m.content || (sending && i === messages.length - 1 ? '…' : '')}
                   </div>
                 </div>

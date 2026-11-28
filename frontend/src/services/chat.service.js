@@ -1,8 +1,10 @@
 import api from './api';
 
 // Streams a chat reply over SSE. onChunk receives each text piece;
-// resolves with { conversationId } when the stream ends.
-export async function streamChat(agentId, { conversationId, workspaceId, message }, onChunk) {
+// onTool (optional) receives live tool events ({ id, name, toolkit,
+// status }) as the agent uses its tools. Resolves with
+// { conversationId } when the stream ends.
+export async function streamChat(agentId, { conversationId, workspaceId, message }, onChunk, onTool) {
   const token = localStorage.getItem('nexora_token');
   const res = await fetch(`/api/chat/${agentId}/messages`, {
     method: 'POST',
@@ -30,6 +32,7 @@ export async function streamChat(agentId, { conversationId, workspaceId, message
       if (!line.startsWith('data: ')) continue;
       const payload = JSON.parse(line.slice(6));
       if (payload.text) onChunk(payload.text);
+      if (payload.tool && onTool) onTool(payload.tool);
       if (payload.error) throw new Error(payload.error);
       if (payload.done) doneResult = payload;
     }

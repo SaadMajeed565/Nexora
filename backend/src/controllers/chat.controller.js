@@ -8,6 +8,7 @@ const {
   buildMemoryBlock,
   RECENT_WINDOW,
 } = require('../services/chat.service');
+const { describeTool } = require('../agent/chatTools');
 
 // UC-16: send a message and stream the agent's reply back as SSE.
 // The user message is saved first; the assistant reply is saved once the
@@ -72,6 +73,7 @@ async function sendMessage(req, res, next) {
     }
 
     let reply = '';
+    const toolsUsed = [];
     try {
       const result = await streamChatReply(agent, history, memoryBlock);
       res.writeHead(200, {
@@ -81,10 +83,25 @@ async function sendMessage(req, res, next) {
       });
       // AI SDK v7: read fullStream and take the text from text-delta parts
       // (the field is `text`, not `textDelta`; textStream alone yields nothing).
+      // Tool parts become { tool } events so the UI can show the agent's
+      // real tool use as it happens, instead of the reply only narrating it.
       for await (const part of result.fullStream) {
         if (part.type === 'text-delta' && part.text) {
           reply += part.text;
           res.write(`data: ${JSON.stringify({ text: part.text })}\n\n`);
+        } else if (part.type === 'tool-call') {
+          const info = describeTool(part.toolName);
+          toolsUsed.push(info.name);
+          res.write(
+            `data: ${JSON.stringify({ tool: { id: part.toolName, name: info.name, toolkit: info.toolkit, status: 'running' } })}\n\n`
+          );
+        } else if (part.type === 'tool-result' || part.type === 'tool-error') {
+          const info = describeTool(part.toolName);
+          const failed =
+            part.type === 'tool-error' || !!(part.output && part.output.error);
+          res.write(
+            `data: ${JSON.stringify({ tool: { id: part.toolName, name: info.name, toolkit: info.toolkit, status: failed ? 'failed' : 'done' } })}\n\n`
+          );
         }
       }
     } catch (err) {
@@ -97,7 +114,11 @@ async function sendMessage(req, res, next) {
     }
 
     if (!reply.trim()) {
-      reply = "I couldn't generate a reply. Please try again.";
+      // A turn that only ran tools still did the work — say what was used
+      // instead of claiming the reply failed.
+      reply = toolsUsed.length
+        ? `Done. I used: ${[...new Set(toolsUsed)].join(', ')}.`
+        : "I couldn't generate a reply. Please try again.";
       res.write(`data: ${JSON.stringify({ text: reply })}\n\n`);
     }
     // The reply is embedded too, so future turns can retrieve it.

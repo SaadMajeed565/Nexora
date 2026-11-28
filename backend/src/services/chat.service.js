@@ -1,13 +1,13 @@
-const { streamText, embed } = require('ai');
+const { streamText, embed, stepCountIs } = require('ai');
 const { createGoogleGenerativeAI } = require('@ai-sdk/google');
+const { buildChatTools } = require('../agent/chatTools');
 
 // The agent's identity becomes the system prompt: name, description,
 // capabilities, tools, workflow, and fallback — in plain sentences. Tool
 // descriptions have trailing periods stripped so the sentence never ends
-// with "..". (Phase 1 has no live tool execution; the prompt describes
-// the tools and workflow the agent is designed to follow. Live tools
-// from the self-hosted catalog (backend/src/tools/) arrive with
-// Module 4 in Phase 2.)
+// with "..". The agent's platforms also run LIVE in chat (user decision
+// 2026-11-28): every tool of every toolkit the agent uses is attached
+// for real — see agent/chatTools.js.
 // Every field is read defensively: a legacy or sparse agent record can
 // carry nulls (the user's DB predates the current seed), and a missing
 // description must degrade to a sane default, never break the chat.
@@ -138,7 +138,9 @@ function buildMemoryBlock(messages) {
 // UC-16: stream a reply from the agent. Returns the streamText result;
 // the caller reads result.fullStream and saves the full text afterwards.
 // memoryBlock (optional) is the retrieved long-term memory, appended to
-// the system prompt.
+// the system prompt. When the agent has a runnable platform, its tools
+// are attached for real and the model may call them over several steps;
+// tool failures degrade to talk-only, never break the chat.
 async function streamChatReply(agent, history, memoryBlock = '') {
   if (!process.env.GEMINI_API_KEY) {
     const err = new Error('AI service not configured: set GEMINI_API_KEY in backend/.env');
@@ -147,13 +149,25 @@ async function streamChatReply(agent, history, memoryBlock = '') {
   }
   const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const system = memoryBlock
+  let system = memoryBlock
     ? `${buildSystemPrompt(agent)}\n\n${memoryBlock}`
     : buildSystemPrompt(agent);
+  let tools = {};
+  try {
+    tools = await buildChatTools(agent);
+  } catch (err) {
+    tools = {};
+  }
+  const hasTools = Object.keys(tools).length > 0;
+  if (hasTools) {
+    system +=
+      '\nYou have real tools available. Use them when you need to look something up or take an action. Do not say you are searching or checking something unless you used a tool for it.';
+  }
   return streamText({
     model: google(model),
     system,
     messages: history,
+    ...(hasTools ? { tools, stopWhen: stepCountIs(8) } : {}),
   });
 }
 
