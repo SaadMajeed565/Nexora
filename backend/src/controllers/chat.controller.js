@@ -1,7 +1,13 @@
 const Agent = require('../models/Agent');
 const Conversation = require('../models/Conversation');
 const { getMemberWorkspace } = require('../utils/workspace');
-const { streamChatReply } = require('../services/chat.service');
+const {
+  streamChatReply,
+  embedText,
+  retrieveRelevantMessages,
+  buildMemoryBlock,
+  RECENT_WINDOW,
+} = require('../services/chat.service');
 
 // UC-16: send a message and stream the agent's reply back as SSE.
 // The user message is saved first; the assistant reply is saved once the
@@ -37,17 +43,37 @@ async function sendMessage(req, res, next) {
       });
     }
 
-    conversation.messages.push({ role: 'user', content: message });
+    // Long-term memory: embed the new message and store the vector with
+    // it, so it can be retrieved in later turns. Best-effort — a failed
+    // embedding (quota, network) never blocks the chat.
+    const userEmbedding = await embedText(message);
+    conversation.messages.push({
+      role: 'user',
+      content: message,
+      ...(userEmbedding ? { embedding: userEmbedding } : {}),
+    });
     await conversation.save();
 
-    // Session memory (FR-7.3): the last 20 messages go back to the model.
+    // Layered session memory (FR-7.3): the last RECENT_WINDOW messages go
+    // back to the model verbatim, plus the most similar earlier messages
+    // from THIS conversation, retrieved by embedding cosine similarity
+    // and appended to the system prompt as a labelled block. If retrieval
+    // fails for any reason, the chat falls back to the recent window.
     const history = conversation.messages
-      .slice(-20)
+      .slice(-RECENT_WINDOW)
       .map((m) => ({ role: m.role, content: m.content }));
+    let memoryBlock = '';
+    try {
+      memoryBlock = buildMemoryBlock(
+        retrieveRelevantMessages(conversation.messages, userEmbedding)
+      );
+    } catch (err) {
+      memoryBlock = '';
+    }
 
     let reply = '';
     try {
-      const result = await streamChatReply(agent, history);
+      const result = await streamChatReply(agent, history, memoryBlock);
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -74,7 +100,13 @@ async function sendMessage(req, res, next) {
       reply = "I couldn't generate a reply. Please try again.";
       res.write(`data: ${JSON.stringify({ text: reply })}\n\n`);
     }
-    conversation.messages.push({ role: 'assistant', content: reply });
+    // The reply is embedded too, so future turns can retrieve it.
+    const replyEmbedding = await embedText(reply);
+    conversation.messages.push({
+      role: 'assistant',
+      content: reply,
+      ...(replyEmbedding ? { embedding: replyEmbedding } : {}),
+    });
     try {
       await conversation.save();
     } catch (err) {

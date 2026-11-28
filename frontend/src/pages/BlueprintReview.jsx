@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { getBlueprint, updateBlueprint } from '../services/blueprint.service';
-import { matchAgents, createAgentFromBlueprint } from '../services/library.service';
+import { matchAgents, createAgentFromBlueprint, listUserAgents } from '../services/library.service';
 import ExecutionGraph from '../components/ExecutionGraph';
 
 const EDITABLE = ['name', 'purpose', 'tools', 'workflow', 'triggers', 'fallback'];
@@ -37,6 +37,14 @@ export default function BlueprintReview() {
     matchAgents(id)
       .then(setMatches)
       .catch(() => setMatchError('Could not load matches.'));
+    // If an agent was already created from this blueprint (e.g. before a
+    // refresh), show it as created instead of offering the button again.
+    listUserAgents()
+      .then((agents) => {
+        const existing = agents.find((a) => a.sourceBlueprint === id);
+        if (existing) setCreatedAgent(existing);
+      })
+      .catch(() => {});
   }, [id]);
 
   async function handleCreateAgent() {

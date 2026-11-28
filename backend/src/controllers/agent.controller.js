@@ -44,6 +44,14 @@ async function createAgentFromBlueprint(req, res, next) {
         workspace && workspace.members.some((m) => m.user.toString() === req.user._id.toString());
       if (!isMember) return res.status(403).json({ error: 'Not your blueprint' });
     }
+    // One agent per blueprint per user: a repeat create (e.g. after a
+    // page refresh) returns the existing agent instead of duplicating it.
+    const existing = await Agent.findOne({
+      owner: req.user._id,
+      sourceBlueprint: blueprint._id,
+      isPrebuilt: false,
+    });
+    if (existing) return res.status(200).json({ agent: existing, alreadyCreated: true });
     const agent = await Agent.create({
       name: blueprint.name,
       description: blueprint.purpose,
