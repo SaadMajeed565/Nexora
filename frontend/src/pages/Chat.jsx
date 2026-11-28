@@ -103,9 +103,9 @@ export default function Chat() {
   }
 
   return (
-    <div className="nx-page flex h-[calc(100dvh-150px)] flex-col !max-w-6xl !py-4">
-      <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row lg:gap-8">
-        <aside className="w-full shrink-0 lg:h-full lg:w-56 lg:overflow-y-auto">
+    <div className="nx-page !max-w-6xl">
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+        <aside className="w-full shrink-0 lg:w-56">
           <button type="button" onClick={newChat} className="nx-btn-primary w-full">
             New chat
           </button>
@@ -142,15 +142,16 @@ export default function Chat() {
           </Link>
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <h1 className="font-display text-2xl font-bold tracking-tight">{agent.name}</h1>
-            <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">{agent.description}</p>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header>
+            <p className="nx-eyebrow">Live session</p>
+            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">{agent.name}</h1>
+            <p className="mt-1 text-sm text-ink-muted">{agent.description}</p>
           </header>
 
           {error && <p className="nx-alert-error mt-4">{error}</p>}
 
-          <div className="nx-panel mt-3 flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="nx-panel mt-5 flex h-[80vh] min-h-[420px] flex-col overflow-hidden">
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {messages.length === 0 && (
                 <p className="py-12 text-center text-sm text-ink-muted">
